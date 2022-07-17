@@ -3,7 +3,15 @@
 import requests
 import json
 import numpy as np
+import time
 from PIL import Image, ImageDraw, ImageFont
+
+### Run command: python3 detectron2_cloud_vision_api_demo.py
+
+#Used to print time lapsed during different parts of code execution.
+def printTimeStamp(start, log):
+  end = time.time()
+  print(log + ': time: {0:.2f}s'.format(end-start))
 
 # Define Constants
 IMAGE_PATH="<INSERT_IMAGE_FILE_PATH_HERE>"
@@ -20,8 +28,14 @@ headers = {
   'Accept': 'image/jpeg',
   'Content-Type': 'image/jpeg'
 }
+
+#Program reference start timestamp
+start = time.time()
+
 # send POST request to url
 response = requests.request("POST", url, headers=headers, data=payload)
+
+printTimeStamp(start, "Detection Time")
 
 # Load Model metadata needed to interpret the inference results
 # Opening JSON file
@@ -40,7 +54,6 @@ def pan_seg_visualizer(predictionsSegs, instance_list, image_src, stuff_classes,
     rgba = np.zeros([480,640,4], dtype = np.uint8)
     rgba[:, :] = [255, 255, 255, 0]
     font = ImageFont.truetype('./fonts/Ubuntu-Bold.ttf', 8)
-    print(font.getsize("text"))
     stuff_array=[]
 
     for seg_info in instance_list:
@@ -87,3 +100,5 @@ def pan_seg_visualizer(predictionsSegs, instance_list, image_src, stuff_classes,
 # Call function
 image_src = Image.open(IMAGE_PATH).convert('RGBA')
 pan_seg_visualizer(panoptic_seg, instance_list, image_src, metadata["stuff_classes"], metadata["stuff_colors"], metadata["thing_classes"], metadata["thing_colors"], boxes, opacity)
+
+printTimeStamp(start, "Execution End Time")
