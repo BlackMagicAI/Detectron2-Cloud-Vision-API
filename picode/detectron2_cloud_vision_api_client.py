@@ -4,14 +4,8 @@ import requests
 import json
 import numpy as np
 import time
+import io
 from PIL import Image, ImageDraw, ImageFont
-
-### Run command: python3 detectron2_cloud_vision_api_demo.py
-
-#Used to print time lapsed during different parts of code execution.
-def printTimeStamp(start, log):
-  end = time.time()
-  print(log + ': time: {0:.2f}s'.format(end-start))
 
 # Define Constants
 IMAGE_PATH="<INSERT_IMAGE_FILE_PATH_HERE>"
@@ -20,37 +14,34 @@ API_INVOKE_URL="<INSERT_API_INVOKE_URL>"
 # define variables
 url=API_INVOKE_URL
 
-# Read image into memory
-with open(IMAGE_PATH, 'rb') as f:
-    payload = f.read()
-    
-headers = {
-  'Accept': 'image/jpeg',
-  'Content-Type': 'image/jpeg'
-}
+#Used to print time lapsed during different parts of code execution.
+def printTimeStamp(start, log):
+  end = time.time()
+  print(log + ': time: {0:.2f}s'.format(end-start))
 
 #Program reference start timestamp
-start = time.time()
+# start = time.time()
+# printTimeStamp(start, "Detection Time")
 
-# send POST request to url
-response = requests.request("POST", url, headers=headers, data=payload)
+def cloud_api_predict(headers, payload):
+    # send POST request to url
+    return requests.request("POST", url, headers=headers, data=payload).text
 
-printTimeStamp(start, "Detection Time")
-
-# Load Model metadata needed to interpret the inference results
-# Opening JSON file
-with open('./files/pan_metadata.json') as json_file:
-    metadata = json.load(json_file)
-
-# Parse inference results received from the API call
-res = json.loads(response.text) # convert json string to Python dict for parsing
-opacity=150
-boxes=res[0]["pred_boxes"]
-panoptic_seg=np.array(res[0]["panoptic_seg"])
-instance_list=res[0]["instance_list"]
+def get_prediction_data(predictions_json):
+    # Parse inference results received from the API call
+    res = json.loads(predictions_json) # convert json string to Python dict for parsing
+    # opacity=150
+    boxes=res[0]["pred_boxes"]
+    panoptic_seg=np.array(res[0]["panoptic_seg"])
+    instance_list=res[0]["instance_list"]
+    return boxes, panoptic_seg, instance_list
 
 # Define Panoptic segmentation visualizer function
-def pan_seg_visualizer(predictionsSegs, instance_list, image_src, stuff_classes, stuff_colors, thing_classes, thing_colors, boxes, opacity):
+def pan_seg_visualizer(panoptic_seg, instance_list, metadata, boxes, opacity):
+    stuff_classes=metadata["stuff_classes"]
+    stuff_colors=metadata["stuff_colors"]
+    thing_classes=metadata["thing_classes"]
+    thing_colors=metadata["thing_colors"]
     rgba = np.zeros([480,640,4], dtype = np.uint8)
     rgba[:, :] = [255, 255, 255, 0]
     font = ImageFont.truetype('./fonts/Ubuntu-Bold.ttf', 8)
@@ -92,13 +83,4 @@ def pan_seg_visualizer(predictionsSegs, instance_list, image_src, stuff_classes,
         draw.rectangle([(y1, x1), (y1 + width_text, x1+height_text)], fill=(0,0,0))#text background rectangle
         draw.text((y1, x1), text, fill=(255, 255, 255)) # draw text on instance
 
-    new_image=Image.alpha_composite(image_src, maskXImg)
-    new_image.show() #display final annotated image
-    # Or save to file
-    # new_image.save("output.jpg")
-
-# Call function
-image_src = Image.open(IMAGE_PATH).convert('RGBA')
-pan_seg_visualizer(panoptic_seg, instance_list, image_src, metadata["stuff_classes"], metadata["stuff_colors"], metadata["thing_classes"], metadata["thing_colors"], boxes, opacity)
-
-printTimeStamp(start, "Execution End Time")
+    return maskXImg
