@@ -13,8 +13,6 @@ from detectron2_cloud_vision_api_client import *
 # Read image into memory
 with open("../images/city-scene.jpg", 'rb') as f:
     payload = f.read()
-    
-print(type(payload))
 
 headers = {
   'Accept': 'image/jpeg',
