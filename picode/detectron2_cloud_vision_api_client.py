@@ -8,7 +8,6 @@ import io
 from PIL import Image, ImageDraw, ImageFont
 
 # Define Constants
-IMAGE_PATH="<INSERT_IMAGE_FILE_PATH_HERE>"
 API_INVOKE_URL="<INSERT_API_INVOKE_URL>"
 
 # define variables

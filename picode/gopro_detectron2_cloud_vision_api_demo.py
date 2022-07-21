@@ -138,60 +138,52 @@ def output_overlay(filepath, output=None, overlay=None):
 # Create camera & rawcapture objects
 #stream = BytesIO()
 camera = PiCamera()
-rawCapture = PiRGBArray(camera, size=camera.resolution)
+camera.resolution=(640,480)
+# rawCapture = PiRGBArray(camera, size=camera.resolution)
 # print(camera.resolution)
 #camera.start_preview(fullscreen=False, window=(0,0,size[0],size[1])) #show preview in custom size. Used for debugging.
 camera.start_preview(fullscreen=True)
 
 pad = None
+stream=BytesIO()
 
-for frame in camera.capture_continuous(rawCapture, format='rgb'):
-
-  image = Image.fromarray(frame.array)
-
+for frame in camera.capture_continuous(stream, format='jpeg'):
+  
+  stream.seek(0)
+  image = Image.open(stream)
+  infile=BytesIO()
+  Image.save(infile, format="JPEG")
+  infile.seek(0)
   # Create an image padded to the required size with
   # mode 'RGBA' needed for bounding box overlay with transparency mask.
-  pad = Image.new('RGBA', (
-    ((image.size[0] + (32-1)) // 32) * 32,
-    ((image.size[1] + (16-1)) // 16) * 16,
-    ))
+  # pad = Image.new('RGBA', (
+  #   ((image.size[0] + (32-1)) // 32) * 32,
+  #   ((image.size[1] + (16-1)) // 16) * 16,
+  #   ))
 
-  # #Program reference start timestamp
-  # start = time.time()
+  #Program reference start timestamp
+  start = time.time()
 
-  # # Form json request payload
-  # jsonBody = getJSONBody(image)
+  predictions=cloud_api_predict(headers, infile.getvalue())
 
-  # # send POST request to url
-  # response = requests.post(url,
-  #                   headers={'Content-Type': 'application/json; charset=utf-8',
-  #                            'Authorization': bearer},
-  #                   json=jsonBody
-  #                   )
-
-  # # printTimeStamp(start, "Detection Time")
-
-  # #Process model output data annotate image with bounding boxes
-  # boxes, classes, scores = processJson(response.json())
-  # drawBoundingBox(pad, boxes, classes, scores, (0,255,0))
-
-  predictions=cloud_api_predict(headers, frame)
+  printTimeStamp(start, "Detection Time")
 
   boxes, panoptic_seg, instance_list=get_prediction_data(predictions)
-  pad2=pan_seg_visualizer(panoptic_seg, instance_list, metadata, boxes, 150)
+  mask=pan_seg_visualizer(panoptic_seg, instance_list, metadata, boxes, 150)
 
   #Remove previous overlays
   for o in camera.overlays:
     camera.remove_overlay(o)
 
-  o = camera.add_overlay(pad2.tobytes(), alpha = 255, layer = 3, size=pad2.size)
+  o = camera.add_overlay(mask.tobytes(), alpha = 255, layer = 3, size=mask.size)
 
-  rawCapture.truncate(0)
+  # rawCapture.truncate(0)
   #break #uncomment to end loop and output image to jpg file
 
 # Combine original image & bounding box annotation overlays image into one image
 # & save to jpg file.
 # output_overlay("out/goproyolo.jpg", image, pad)
+printTimeStamp(start, "Execution End Time")
 
 camera.stop_preview()
 camera.close()
