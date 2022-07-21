@@ -152,7 +152,7 @@ for frame in camera.capture_continuous(stream, format='jpeg'):
   stream.seek(0)
   image = Image.open(stream)
   infile=BytesIO()
-  Image.save(infile, format="JPEG")
+  image.save(infile, format="JPEG")
   infile.seek(0)
   # Create an image padded to the required size with
   # mode 'RGBA' needed for bounding box overlay with transparency mask.
