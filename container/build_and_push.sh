@@ -1,15 +1,15 @@
-%%sh
+#!/usr/bin/env bash
 
 # The name of our algorithm
 algorithm_name=detectron2-example
 
-cd container
+# cd container
 
 account=$(aws sts get-caller-identity --query Account --output text)
 
 # Get the region defined in the current configuration (default to us-west-2 if none defined)
 region=$(aws configure get region)
-#region=${region:-us-west-2}
+# region=${region:-us-east-2}
 
 fullname="${account}.dkr.ecr.${region}.amazonaws.com/${algorithm_name}:latest"
 
